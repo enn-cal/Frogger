@@ -1,32 +1,21 @@
 #####################################################################
 #
-# CSC258H1S Winter 2022 Assembly Final Project
-# University of Toronto, St. George
-#
-# Student: Nehchal Kalsi, 1006884105
-#
-# Bitmap Display Configuration:
+# BITMAP DISPLAY CONFIGURATION:
 # - Unit width in pixels: 4
 # - Unit height in pixels: 4
 # - Display width in pixels: 512
 # - Display height in pixels: 512
 # - Base Address for Display: 0x10008000 ($gp)
 #
-# Which milestone is reached in this submission?
-# - Milestone 5
-#
-# Which approved additional features have been implemented?
+# FEATURES IMPLEMENTED:
 # 1. Dynamic increase in difficulty (speed, obstacles, etc.) as game progresses
 # 2. Make objects (frog, logs, turtles, vehicles, etc) look more like the arcade version.
 # 3. Add a third row in each of the water and road sections.
 # 4. Display a death/respawn animation each time the player loses a frog.
-# 5. Make the frog point in the direction that it’s traveling.
+# 5. Make the frog point in the direction that itâ€™s traveling.
 # 6. Add sound effects for movement, losing lives, collisions, and reaching the goal.
-# 7. Displaying a pause screen or image when the ‘p’ key is pressed, and returning to
-# the game when ‘p’ is pressed again.
-#
-# Any additional information that the TA needs to know:
-# - (write here, if any)
+# 7. Displaying a pause screen or image when the â€˜pâ€™ key is pressed, and returning to
+# the game when â€˜pâ€™ is pressed again.
 #
 #####################################################################
 
