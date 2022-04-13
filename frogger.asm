@@ -13,15 +13,17 @@
 # - Base Address for Display: 0x10008000 ($gp)
 #
 # Which milestone is reached in this submission?
-# (See the assignment handout for descriptions of the milestones)
-# - Milestone 1/2/3/4/5 (choose the one the applies)
+# - Milestone 5
 #
 # Which approved additional features have been implemented?
-# (See the assignment handout for the list of additional features)
-# 1. (fill in the feature, if any)
-# 2. (fill in the feature, if any)
-# 3. (fill in the feature, if any)
-# ... (add more if necessary)
+# 1. Dynamic increase in difficulty (speed, obstacles, etc.) as game progresses
+# 2. Make objects (frog, logs, turtles, vehicles, etc) look more like the arcade version.
+# 3. Add a third row in each of the water and road sections.
+# 4. Display a death/respawn animation each time the player loses a frog.
+# 5. Make the frog point in the direction that it’s traveling.
+# 6. Add sound effects for movement, losing lives, collisions, and reaching the goal.
+# 7. Displaying a pause screen or image when the ‘p’ key is pressed, and returning to
+# the game when ‘p’ is pressed again.
 #
 # Any additional information that the TA needs to know:
 # - (write here, if any)
@@ -29,562 +31,854 @@
 #####################################################################
 
 .data
-	displayAddress: .word 0x10008000
-	grass_color: .word 0x00ff00
+
+displayAddress: .word 0x10008000
+
+safe_color: .word 0xfff9ed
+frog_color: .word 0x9dff00
 	
-	x_frog_initial: .word 256
-	y_frog_initial: .word 102
+x_frog: .word 30
+y_frog: .word 49
 	
-	x_frog: .word 64
-	y_frog: .word 102
+x_frog_initial: .word 30
+y_frog_initial: .word 49
+	
+goals_accomplished: .word 0
+lives: .word 3
+	
+	safe_lane_top: .word 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0x5e548e, 0x5e548e,
+			    0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec,
+			    0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0x5e548e, 0x5e548e,
+			    0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 
+			    0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0x5e548e, 0x5e548e,
+			    0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec,
+			    0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec,
+			     0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0x5e548e, 0x5e548e,
+			    0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec,
+			    0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0x5e548e, 0x5e548e,
+			    0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 
+			    0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0x5e548e, 0x5e548e,
+			    0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec,
+			    0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec,
+			     0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0x5e548e, 0x5e548e,
+			    0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec,
+			    0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0x5e548e, 0x5e548e,
+			    0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 
+			    0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0x5e548e, 0x5e548e,
+			    0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec,
+			    0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec,
+			     0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0x5e548e, 0x5e548e,
+			    0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec,
+			    0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0x5e548e, 0x5e548e,
+			    0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 
+			    0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0x5e548e, 0x5e548e,
+			    0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0x5e548e, 0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec,
+			    0xfff9ec, 0xfff9ec, 0xfff9ec, 0xfff9ec
+			     
+			 
+	water_lane_1: .word 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,			 
+			   0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396,
+			   0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0x0a9396, 0x0a9396,			   
+			   0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			    0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,			 
+			   0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396,
+			   0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0x0a9396, 0x0a9396,			   
+			   0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			    0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,			 
+			   0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396,
+			   0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0x0a9396, 0x0a9396,			   
+			   0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			    0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,			 
+			   0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396,
+			   0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0x0a9396, 0x0a9396,			   
+			   0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6
+			   
+	water_lane_2: .word 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b,
+			   0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b,
+			   0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b,
+			   0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			     0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b,
+			   0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b,
+			   0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b,
+			   0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			    0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b,
+			   0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b,
+			   0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b,
+			   0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 
+			    0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b,
+			   0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b,
+			   0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b,
+			   0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6
+
+	water_lane_3: .word 0xa3d8c6, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396,
+			  0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			  0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			  0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			  0xa3d8c6, 0xa3d8c6, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396,
+			  0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0xa3d8c6, 0xa3d8c6,
+			  0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396,
+			  0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			  0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			  0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			  0xa3d8c6, 0xa3d8c6, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396,
+			  0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0xa3d8c6, 0xa3d8c6,
+			  0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396,
+			  0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			  0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			  0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			  0xa3d8c6, 0xa3d8c6, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396,
+			  0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0xa3d8c6, 0xa3d8c6,
+			  0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396,
+			  0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			  0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			  0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			  0xa3d8c6, 0xa3d8c6, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396,
+			  0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0x0a9396, 0xa3d8c6, 0xa3d8c6,
+			  0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6
+			  
+	water_lane_4: .word 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b,
+			   0x003f4b, 0x003f4b, 0x003f4b, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b,
+			   0x003f4b, 0x003f4b, 0xa3d8c6, 0xa3d8c6,
+			    0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b,
+			   0x003f4b, 0x003f4b, 0x003f4b, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b,
+			   0x003f4b, 0x003f4b, 0xa3d8c6, 0xa3d8c6,
+			    0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b,
+			   0x003f4b, 0x003f4b, 0x003f4b, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b,
+			   0x003f4b, 0x003f4b, 0xa3d8c6, 0xa3d8c6,
+			    0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b,
+			   0x003f4b, 0x003f4b, 0x003f4b, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6,
+			   0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0xa3d8c6, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b, 0x003f4b,
+			   0x003f4b, 0x003f4b, 0xa3d8c6, 0xa3d8c6
+			   
+	road_lane_1: .word 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd077, 0x001219, 0x001219, 0xffd077, 0xffd077,
+			  0xffd077, 0xffd077, 0xffd077, 0xffd077, 0x001219, 0x001219, 0xffd077, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd077,
+			  0x001219, 0xffd077, 0xffd077, 0xffd077, 0x001219, 0xffd077, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd077, 0x001219, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0x001219,
+			  0xffd077, 0xffd078, 0xffd078, 0xffd078,
+			   0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00,
+			  0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xee9b00,
+			  0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00,
+			  0xee9b00, 0xffd078, 0xffd078, 0xffd078,
+			   0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00,
+			  0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xee9b00,
+			  0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00, 0xee9b00,
+			  0xee9b00, 0xffd078, 0xffd078, 0xffd078,
+			   0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd077, 0x001219, 0x001219, 0xffd077, 0xffd077,
+			  0xffd077, 0xffd077, 0xffd077, 0xffd077, 0x001219, 0x001219, 0xffd077, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd077,
+			  0x001219, 0xffd077, 0xffd077, 0xffd077, 0x001219, 0xffd077, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd077, 0x001219, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0x001219,
+			  0xffd077, 0xffd078, 0xffd078, 0xffd078
+			  
+	road_lane_2: .word 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd077, 0x001219,
+			  0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0x001219, 0xffd077, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd077,
+			  0x001219, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0x001219, 0xffd077, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			   0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xca6702, 0xca6702,
+			  0xca6702, 0xca6702, 0xca6702, 0xca6702, 0xca6702, 0xca6702, 0xca6702, 0xca6702, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xca6702,
+			  0xca6702, 0xca6702, 0xca6702, 0xca6702, 0xca6702, 0xca6702, 0xca6702, 0xca6702, 0xca6702, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 
+			   0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xca6702, 0xca6702,
+			  0xca6702, 0xca6702, 0xca6702, 0xca6702, 0xca6702, 0xca6702, 0xca6702, 0xca6702, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xca6702,
+			  0xca6702, 0xca6702, 0xca6702, 0xca6702, 0xca6702, 0xca6702, 0xca6702, 0xca6702, 0xca6702, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			   0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd077, 0x001219,
+			  0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0x001219, 0xffd077, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd077,
+			  0x001219, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0x001219, 0xffd077, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078
+			  
+	road_lane_3: .word 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd077, 0x001219, 0x001219, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077,
+			  0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0x001219,
+			  0x001219, 0xffd077, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd077, 0x001219, 0xffd077, 0x001219,
+			  0xffd077, 0xffd078, 0xffd078, 0xffd078,
+			   0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402,
+			  0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402,
+			  0x9f3402, 0x9f3402, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402,
+			  0x9f3402, 0xffd078, 0xffd078, 0xffd078,
+			   0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402,
+			  0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402,
+			  0x9f3402, 0x9f3402, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0x9f3402, 0x9f3402, 0x9f3402, 0x9f3402,
+			  0x9f3402, 0xffd078, 0xffd078, 0xffd078,
+			   0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd077, 0x001219, 0x001219, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077,
+			  0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0x001219,
+			  0x001219, 0xffd077, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd077, 0x001219, 0xffd077, 0x001219,
+			  0xffd077, 0xffd078, 0xffd078, 0xffd078
+			  
+	road_lane_4: .word 0xffd078, 0xffd077, 0x001219, 0xffd077, 0xffd077, 0xffd077, 0x001219, 0xffd077, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd077, 0x001219, 0x001219, 0xffd077,
+			  0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0x001219, 0x001219,
+			  0xffd077, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078,0xffd078, 0xffd078,
+			   0xffd078, 0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b,
+			  0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b,
+			  0x6f181b, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078,0xffd078, 0xffd078,
+			   0xffd078, 0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b,
+			  0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b, 0x6f181b,
+			  0x6f181b, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078,0xffd078, 0xffd078,
+			   0xffd078, 0xffd077, 0x001219, 0xffd077, 0xffd077, 0xffd077, 0x001219, 0xffd077, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd077, 0x001219, 0x001219, 0xffd077,
+			  0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0xffd077, 0x001219, 0x001219,
+			  0xffd077, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078, 0xffd078,
+			  0xffd078, 0xffd078,0xffd078, 0xffd078
+
 .text
 
-main:	
-	# initialize loop variables
-	lw $t0, displayAddress 
+# register usage
+# $t0 - displayAddress
+# $t1 - color
+# $t3 - read from array
+# $t4 - loop variable
+# $t7 - x_frog
+# $t8 - y_frog
+
+# setup screen - called just once
+main:
+	lw $t0, displayAddress		# base display address in $t0
 	
-	li $t2, 0x2d8043		# grass color
-	li $t3, 0x83e4eb		# water color
-	li $t4, 0x373f40		# road color
+	add $t5, $zero, $zero		# initialize registers for future use
+	add $s4, $zero, $zero
+	add $s3, $zero $zero	
+	addi $s1, $zero, 50
 	
-	add $t5, $zero, $zero	# set $t5 to zero
-	addi $t6, $zero, 128 	# set $t6 to zero
+	lw $t1, safe_color
 	
+	# draw top safe zone 		
+	addi $t0, $t0, 2304		# 256 pixels in a row * 9 rows = 2304
+	la $t3, safe_lane_top		# load color array into $t3 register
+	jal draw_safe_top			# call function to draw lane
+	
+		
 draw_background:
-	beq $t5, $t6, end_draw_background
+	addi $t0, $t0, 3328	# $t0 + (64 * 4) = 1024
+	add $t4, $zero, $zero	# initialize $t4 to 0
+				
+	# for frog location
+	lw $t0, displayAddress	# reset $t0 to displayAddress
+	lw $t7, x_frog		# load value of x_frog in $t7 register
+	lw $t8, y_frog		# load value of y_frog in $t8 register
+	sll $t7, $t7, 2		# multiply x_frog by 4 = (2^2)
+	sll $t8, $t8, 8		# multiply y_frog by 256 = (2^8)
+	add $t0, $t0, $t7	# add x_frog * 4 to $t0
+	add $t0, $t0, $t8	# add y_frog * 256 tp $t0
 	
-	# Upper Grass
-	sw $t2, 6144($t0)
-	sw $t2, 6656($t0)
-	sw $t2, 7168($t0)
-	sw $t2, 7680($t0)
-	sw $t2, 8192($t0)
-	sw $t2, 8704($t0)
-	sw $t2, 9216($t0)
-	sw $t2, 9728($t0)
-	sw $t2, 10240($t0)
+	
+	# draws the frog in initial position
+	# only true the first time
+	# if $t6 == 0, jump to draw_frog_forward
+	beq $t6, $zero, draw_frog_forward	
+	
+	# check the ascii value of pressed key
+	# draw frog in that orientation
+	beq $t6, 0x61, draw_frog_left
+	beq $t6, 0x64, draw_frog_right
+	beq $t6, 0x73, draw_frog_backward
+	beq $t6, 0x77, draw_frog_forward
 		
-	# Water
-	sw $t3, 10752($t0)
-	sw $t3, 11264($t0)
-	sw $t3, 11776($t0)
-	sw $t3, 12288($t0)
-	sw $t3, 12800($t0)
-	sw $t3, 13312($t0)
-	sw $t3, 13824($t0)
-	sw $t3, 14336($t0)
-	sw $t3, 14848($t0)
+	end_draw_frog:
 	
-	sw $t3, 15360($t0)
-	sw $t3, 15872($t0)
-	sw $t3, 16384($t0)
-	sw $t3, 16896($t0)
-	sw $t3, 17408($t0)
-	sw $t3, 17920($t0)
-	sw $t3, 18432($t0)
-	sw $t3, 18944($t0)
-	sw $t3, 19456($t0)
+	# draw other elements of game
 	
-	sw $t3, 19968($t0)
-	sw $t3, 20480($t0)
-	sw $t3, 20992($t0)
-	sw $t3, 21504($t0)
-	sw $t3, 22016($t0)
-	sw $t3, 22528($t0)
-	sw $t3, 23040($t0)
-	sw $t3, 23552($t0)
-	sw $t3, 24064($t0)
-	
-	sw $t3, 24576($t0)
-	sw $t3, 25088($t0)
-	sw $t3, 25600($t0)
-	sw $t3, 26112($t0)
-	sw $t3, 26624($t0)
-	sw $t3, 27136($t0)
-	sw $t3, 27648($t0)
-	sw $t3, 28160($t0)
-	sw $t3, 28672($t0)
+	# water section
+	lw $t0, displayAddress		# reset $t0 to displayAddress
+	addi $t0, $t0, 3328		# add old value of $t0 + 1024
+	add $t0, $t0, $s4		
+	la $t3, water_lane_1		# load color array into register
+	jal draw_lane_left_dynamic	# call helper to draw
 		
-	# Middle Grass
-	sw $t2, 29184($t0)
-	sw $t2, 29696($t0)
-	sw $t2, 30208($t0)
-	sw $t2, 30720($t0)
-	sw $t2, 31232($t0)
-	sw $t2, 31744($t0)
-	sw $t2, 32256($t0)
-	sw $t2, 32768($t0)
-	sw $t2, 33280($t0)
+	lw $t0, displayAddress 		# reset $t0 to displayAddress
+	addi $t0, $t0, 4352
+	add $t0, $t0, $s3	
+	la $t3, water_lane_2		
+	jal draw_lane_right_dynamic
 	
-	# Road	
-	sw $t4, 33792($t0)
-	sw $t4, 34304($t0)
-	sw $t4, 34816($t0)
-	sw $t4, 35328($t0)
-	sw $t4, 35840($t0)
-	sw $t4, 36352($t0)	
-	sw $t4, 36864($t0)
-	sw $t4, 37376($t0)
-	sw $t4, 37888($t0)
+	lw $t0, displayAddress 		# reset $t0 to displayAddress
+	addi $t0, $t0, 5376
+	add $t0, $t0, $s4
+	la $t3, water_lane_3	
+	jal draw_lane_left_dynamic
 	
-	sw $t4, 38400($t0)
-	sw $t4, 38912($t0)
-	sw $t4, 39424($t0)
-	sw $t4, 39936($t0)
-	sw $t4, 40448($t0)
-	sw $t4, 40960($t0)
-	sw $t4, 41472($t0)
-	sw $t4, 41984($t0)
-	sw $t4, 42496($t0)
+	lw $t0, displayAddress 		# reset $t0 to displayAddress
+	addi $t0, $t0, 6400
+	add $t0, $t0, $s3
+	la $t3, water_lane_4	
+	jal draw_lane_right_dynamic
 	
-	sw $t4, 43008($t0)
-	sw $t4, 43520($t0)
-	sw $t4, 44032($t0)
-	sw $t4, 44544($t0)
-	sw $t4, 45056($t0)
-	sw $t4, 45568($t0)
-	sw $t4, 46080($t0)
-	sw $t4, 46592($t0)
-	sw $t4, 47104($t0)
+	# middle safe zone
+	lw $t0, displayAddress 		# reset $t0 to displayAddress
+	addi $t0, $t0, 7424
+	lw $t1, safe_color
+	jal draw_safe			
 	
-	sw $t4, 47616($t0)
-	sw $t4, 48128($t0)
-	sw $t4, 48640($t0)
-	sw $t4, 49152($t0)
-	sw $t4, 49664($t0)
-	sw $t4, 50176($t0)
-	sw $t4, 50688($t0)
-	sw $t4, 51200($t0)
-	sw $t4, 51712($t0)
-	
-	# Lower Grass
-	sw $t2, 52224($t0)
-	sw $t2, 52736($t0)
-	sw $t2, 53248($t0)
-	sw $t2, 53760($t0)
-	sw $t2, 54272($t0)
-	sw $t2, 54784($t0)
-	sw $t2, 55296($t0)
-	sw $t2, 55808($t0)
-	sw $t2, 56320($t0)
-	
-	addi $t0, $t0, 4		# move to pixel to the right
+	# road section
+	lw $t0, displayAddress 		# reset $t0 to displayAddress
+	addi $t0, $t0, 8448
+	add $t0, $t0, $s3
+	la $t3, road_lane_1		
+	jal draw_lane_right_dynamic
 		
-	addi $t5, $t5, 1		# increment the loop var
+	lw $t0, displayAddress 		# reset $t0 to displayAddress
+	addi $t0, $t0, 9472
+	add $t0, $t0, $s4
+	la $t3, road_lane_2		
+	jal draw_lane_left_dynamic
 	
-	j draw_background	# jump to the top of the func
+	lw $t0, displayAddress 		# reset $t0 to displayAddress
+	addi $t0, $t0, 10496
+	add $t0, $t0, $s3
+	la $t3, road_lane_3		
+	jal draw_lane_right_dynamic
 	
-end_draw_background:	
-	li $t0, 0x10008000
+	lw $t0, displayAddress 		# reset $t0 to displayAddress
+	addi $t0, $t0, 11520
+	add $t0, $t0, $s4
+	la $t3, road_lane_4	
+	jal draw_lane_left_dynamic
+	
+	# bottom safe zone
+	lw $t0, displayAddress 		# reset $t0 to displayAddress
+	addi $t0, $t0, 12544
+	lw $t1, safe_color
+	jal draw_safe
+	
+	
+	# call function to stop drawing background	
+	j end_background
 
-draw_frog:
-	li $t1, 0x9dff00		# frog color
 
-	# front limbs
-	sw $t1, 52456($t0)
-	sw $t1, 52460($t0)	
-	sw $t1, 52484($t0)
-	sw $t1, 52488($t0)
+# Helper functions
+
+# draw top safe zone	
+draw_safe_top:
+	beq $t4, 256, end_draw
+	lw $t1, 0($t3)
+	sw $t1, 0($t0)
+			
+	addi $t3, $t3, 4		# update counter
+	addi $t0, $t0, 4		# next pixel in display
+	addi $t4, $t4, 1		# next color in array
+	j draw_safe_top
 	
-	sw $t1, 52968($t0)
-	sw $t1, 52972($t0)	
-	sw $t1, 52996($t0)
-	sw $t1, 53000($t0)
+# draw safe zones		
+draw_safe:
+	beq $t4, 256, end_draw	# 64 pixels in each pixel row * 4 pixels for each lane
+	sw $t1, 0($t0)
+	addi $t4, $t4, 1		
+	addi $t0, $t0, 4		
+	j draw_safe
+
+# draw dynamic left lane
+draw_lane_left_dynamic:
+	beq $t4, 256, end_draw		# add loop counter
+	lw $t1, 0($t3)			# load first value of $t3 into $t1
+	addi $t2, $zero, 256		# add 256 to $t2
+	div $t0, $t2			# divide 
+	mfhi $t9				# remainder
+	
+	add $t8, $t2, $s4
+	ble $t8, $t9, left_offset
+	sw $t1, 0($t0)	
+	
+	addi $t4, $t4, 1			# increment $t4 counter by 1	
+	addi $t3, $t3, 4			# next array value
+	addi $t0, $t0, 4			# next pixel
+		
+	j draw_lane_left_dynamic
+	
+
+
+draw_lane_right_dynamic:
+	beq $t4, 256, end_draw		# add loop counter
+	lw $t1, 0($t3)			# load first value of $t3 into $t1
+	addi $t2, $zero, 256		# load first value of $t3 into $t1
+	div $t0, $t2
+	mfhi $t9
+	bgt $s3, $t9, right_offset
+	sw $t1, 0($t0)
+	
+	addi $t4, $t4, 1			# increment $t4 counter by 1	
+	addi $t3, $t3, 4			# next array value
+	addi $t0, $t0, 4			# next pixel
+	
+	j draw_lane_right_dynamic
+
+
+# implement left offset values
+left_offset:
+	sw $t1, 256($t0)
+	
+	addi $t4, $t4, 1			# increment $t4 counter by 1	
+	addi $t3, $t3, 4			# next array value
+	addi $t0, $t0, 4			# next pixel
+	
+	j draw_lane_left_dynamic
+
+# implement right offset values		
+right_offset:
+	sw $t1, -256($t0)
+	
+	addi $t4, $t4, 1			# increment $t4 counter by 1	
+	addi $t3, $t3, 4			# next array value
+	addi $t0, $t0, 4			# next pixel
+	
+	j draw_lane_right_dynamic
+
+# stop drawing and update register values
+end_draw:
+	add $t4, $zero, $zero
+	jr $ra
+
+# frog size: 4*4 pixels
+# draw forward facing frog pixel-by-pixel
+draw_frog_forward:
+	lw $t1, frog_color	# set $t1 to represent frog color
+	
+	# limbs
+	sw $t1, 0($t0)		# top leftmost
+	sw $t1, 12($t0)		# top rightmost
 	
 	# head
-	sw $t1, 53480($t0)
-	sw $t1, 53484($t0)
-	sw $t1, 53488($t0)
-	sw $t1, 53492($t0)	
-	sw $t1, 53496($t0)
-	sw $t1, 53500($t0)
-	sw $t1, 53504($t0)	
-	sw $t1, 53508($t0)
-	sw $t1, 53512($t0)
-	
-	sw $t1, 53992($t0)
-	sw $t1, 53996($t0)
-	sw $t1, 54000($t0)
-	sw $t1, 54004($t0)	
-	sw $t1, 54008($t0)
-	sw $t1, 54012($t0)
-	sw $t1, 54016($t0)	
-	sw $t1, 54020($t0)
-	sw $t1, 54024($t0)
+	sw $t1, 256($t0)
+	sw $t1, 260($t0)
+	sw $t1, 264($t0)
+	sw $t1, 268($t0)
 	
 	# torso
-	sw $t1, 54512($t0)
-	sw $t1, 54516($t0)
-	sw $t1, 54520($t0)
-	sw $t1, 54524($t0)	
-	sw $t1, 54528($t0)
-	
-	sw $t1, 55024($t0)
-	sw $t1, 55028($t0)
-	sw $t1, 55032($t0)
-	sw $t1, 55036($t0)
-	sw $t1, 55040($t0)
+	sw $t1, 516($t0)
+	sw $t1, 520($t0)
 	
 	# lower body
-	sw $t1, 55528($t0)
-	sw $t1, 55532($t0)
-	sw $t1, 55536($t0)
-	sw $t1, 55540($t0)	
-	sw $t1, 55544($t0)
-	sw $t1, 55548($t0)
-	sw $t1, 55552($t0)	
-	sw $t1, 55556($t0)
-	sw $t1, 55560($t0)
+	sw $t1, 768($t0)		# bottom leftmost
+	sw $t1, 772($t0)
+	sw $t1, 776($t0)
+	sw $t1, 780($t0)		# bottom rightmost
 	
-	sw $t1, 56040($t0)
-	sw $t1, 56044($t0)
-	sw $t1, 56048($t0)
-	sw $t1, 56052($t0)	
-	sw $t1, 56056($t0)
-	sw $t1, 56060($t0)
-	sw $t1, 56064($t0)	
-	sw $t1, 56068($t0)
-	sw $t1, 56072($t0)
-	
-	sw $t1, 56552($t0)
-	sw $t1, 56556($t0)
-	sw $t1, 56560($t0)	
-	sw $t1, 56564($t0)
-	sw $t1, 56568($t0)
-	sw $t1, 56572($t0)
-	sw $t1, 56576($t0)	
-	sw $t1, 56580($t0)
-	sw $t1, 56584($t0)
-	
-add $t5, $zero, $zero
-	
-draw_goals:
-	beq $t5, 11, end_goals
-	
-	sw $t4, 6176($t0)
-	sw $t4, 6688($t0)
-	sw $t4, 7200($t0)
-	sw $t4, 7712($t0)
-	sw $t4, 8224($t0)
-	sw $t4, 8736($t0)
-	sw $t4, 9248($t0)
-	sw $t4, 9760($t0)
-	sw $t4, 10272($t0)
-	
-	sw $t4, 6376($t0)
-	sw $t4, 6888($t0)
-	sw $t4, 7400($t0)
-	sw $t4, 7912($t0)
-	sw $t4, 8424($t0)
-	sw $t4, 8936($t0)
-	sw $t4, 9448($t0)
-	sw $t4, 9960($t0)
-	sw $t4, 10472($t0)
-	
-	sw $t4, 6576($t0)
-	sw $t4, 7088($t0)
-	sw $t4, 7600($t0)
-	sw $t4, 8112($t0)
-	sw $t4, 8624($t0)
-	sw $t4, 9136($t0)
-	sw $t4, 9648($t0)
-	sw $t4, 10160($t0)
-	sw $t4, 10672($t0)
-	
-	addi $t5, $t5, 1
-	add $t0, $t0, 4
-	j draw_goals
-	
-end_goals:
-	li $t0, 0x10008000 
-	add $t5, $zero, $zero
+	j end_draw_frog		# return to line after it was called
 
-li $t4, 0x805d2d		# log color
-draw_water_lane_1:
-	beq $t5, 15, end_water_lane_1
-	
-	sw $t4, 10784($t0)
-	sw $t4, 11296($t0)
-	sw $t4, 11808($t0)
-	sw $t4, 12320($t0)
-	sw $t4, 12832($t0)
-	sw $t4, 13344($t0)
-	sw $t4, 13856($t0)
-	sw $t4, 14368($t0)
-	sw $t4, 14880($t0)
-	
-	sw $t4, 10944($t0)
-	sw $t4, 11456($t0)
-	sw $t4, 11968($t0)
-	sw $t4, 12480($t0)
-	sw $t4, 12992($t0)
-	sw $t4, 13504($t0)
-	sw $t4, 14016($t0)
-	sw $t4, 14528($t0)
-	sw $t4, 15040($t0)
-	
-	sw $t4, 11184($t0)
-	sw $t4, 11696($t0)
-	sw $t4, 12208($t0)
-	sw $t4, 12720($t0)
-	sw $t4, 13232($t0)
-	sw $t4, 13744($t0)
-	sw $t4, 14256($t0)
-	sw $t4, 14768($t0)
-	sw $t4, 15280($t0)
-	
-	addi $t5, $t5, 1
-	add $t0, $t0, 4
-	j draw_water_lane_1
-	
-end_water_lane_1:
-	li $t0, 0x10008000 
-	add $t5, $zero, $zero
-	
-	
-li $t4, 0x5b24a3		# turtle color
-draw_water_lane_2:
-	beq $t5, 20, end_water_lane_2
-	
-	sw $t4, 15512($t0)
-	sw $t4, 16024($t0)
-	sw $t4, 16536($t0)
-	sw $t4, 17048($t0)
-	sw $t4, 17560($t0)
-	sw $t4, 18072($t0)
-	sw $t4, 18584($t0)
-	sw $t4, 19096($t0)
-	sw $t4, 19608($t0)
-	
-	sw $t4, 15712($t0)
-	sw $t4, 16224($t0)
-	sw $t4, 16736($t0)
-	sw $t4, 17248($t0)
-	sw $t4, 17760($t0)
-	sw $t4, 18272($t0)
-	sw $t4, 18784($t0)
-	sw $t4, 19296($t0)
-	sw $t4, 19808($t0)
-	
-	
-	addi $t5, $t5, 1
-	add $t0, $t0, 4
-	j draw_water_lane_2
-	
-end_water_lane_2:
-	li $t0, 0x10008000 
-	add $t5, $zero, $zero
-	
 
-li $t4, 0x805d2d		# log color
-draw_water_lane_3:
-	beq $t5, 40, end_water_lane_3
+# draw backward facing frog pixel-by-pixel
+draw_frog_backward:
+	lw $t1, frog_color	# set $t1 to represent frog color
 	
-	sw $t4, 19968($t0)
-	sw $t4, 20480($t0)
-	sw $t4, 20992($t0)
-	sw $t4, 21504($t0)
-	sw $t4, 22016($t0)
-	sw $t4, 22528($t0)
-	sw $t4, 23040($t0)
-	sw $t4, 23552($t0)
-	sw $t4, 24064($t0)
+	# lower body
+	sw $t1, 0($t0)
+	sw $t1, 4($t0)
+	sw $t1, 8($t0)
+	sw $t1, 12($t0)
 	
-	sw $t4, 20268($t0)
-	sw $t4, 20780($t0)
-	sw $t4, 21292($t0)
-	sw $t4, 21804($t0)
-	sw $t4, 22316($t0)
-	sw $t4, 22828($t0)
-	sw $t4, 23340($t0)
-	sw $t4, 23852($t0)
-	sw $t4, 24364($t0)
+	# torso
+	sw $t1, 260($t0)
+	sw $t1, 264($t0)
 	
-	addi $t5, $t5, 1
-	add $t0, $t0, 4
-	j draw_water_lane_3
+	# head
+	sw $t1, 512($t0)
+	sw $t1, 516($t0)
+	sw $t1, 520($t0)
+	sw $t1, 524($t0)
 	
-end_water_lane_3:
-	li $t0, 0x10008000 
-	add $t5, $zero, $zero
+	# limbs
+	sw $t1, 768($t0)
+	sw $t1, 780($t0)
 	
-li $t4, 0x5b24a3		# turtle color
-draw_water_lane_4:
-	beq $t5, 25, end_water_lane_4
-	
-	sw $t4, 24628($t0)
-	sw $t4, 25140($t0)
-	sw $t4, 25652($t0)
-	sw $t4, 26164($t0)
-	sw $t4, 26676($t0)
-	sw $t4, 27188($t0)
-	sw $t4, 27700($t0)
-	sw $t4, 28212($t0)
-	sw $t4, 28724($t0)
-	
-	sw $t4, 24828($t0)
-	sw $t4, 25340($t0)
-	sw $t4, 25852($t0)
-	sw $t4, 26364($t0)
-	sw $t4, 26876($t0)
-	sw $t4, 27388($t0)
-	sw $t4, 27900($t0)
-	sw $t4, 28412($t0)
-	sw $t4, 28924($t0)
+	j end_draw_frog		# return to line after it was called
 	
 	
-	addi $t5, $t5, 1
-	add $t0, $t0, 4
-	j draw_water_lane_4
+# draw right facing frog pixel-by-pixel
+draw_frog_right:
+ 	lw $t1, frog_color	# set $t1 to represent frog color
 	
-end_water_lane_4:
-	li $t0, 0x10008000 
-	add $t5, $zero, $zero
+	sw $t1, 0($t0)
+	sw $t1, 8($t0)
+	sw $t1, 12($t0)
 	
-li $t4, 0xeb0909		# red color
-draw_road_lane_1:
-	beq $t5, 25, end_road_lane_1
+	sw $t1, 256($t0)
+	sw $t1, 260($t0)
+	sw $t1, 264($t0)
 	
-	sw $t4, 33824($t0)
-	sw $t4, 34336($t0)
-	sw $t4, 34848($t0)
-	sw $t4, 35360($t0)
-	sw $t4, 35872($t0)
-	sw $t4, 36384($t0)
-	sw $t4, 36896($t0)
-	sw $t4, 37408($t0)
-	sw $t4, 37920($t0)
+	sw $t1, 512($t0)
+	sw $t1, 516($t0)
+	sw $t1, 520($t0)
 	
-	sw $t4, 34124($t0)
-	sw $t4, 34636($t0)
-	sw $t4, 35148($t0)
-	sw $t4, 35660($t0)
-	sw $t4, 36172($t0)
-	sw $t4, 36684($t0)
-	sw $t4, 37196($t0)
-	sw $t4, 37708($t0)
-	sw $t4, 38220($t0)
+	sw $t1, 768($t0)
+	sw $t1, 776($t0)
+	sw $t1, 780($t0)
 	
-	addi $t5, $t5, 1
-	add $t0, $t0, 4
-	j draw_road_lane_1
+	j end_draw_frog		# return to line after it was called
+ 
+ 
+# draw left facing frog pixel-by-pixel
+draw_frog_left:
+ 	lw $t1, frog_color		# frog color
 	
-end_road_lane_1:
-	li $t0, 0x10008000 
-	add $t5, $zero, $zero
+	sw $t1, 0($t0)
+	sw $t1, 4($t0)
+	sw $t1, 12($t0)
+		
+	sw $t1, 260($t0)
+	sw $t1, 264($t0)
+	sw $t1, 268($t0)
 	
+	sw $t1, 516($t0)
+	sw $t1, 520($t0)
+	sw $t1, 524($t0)
 	
-li $t4, 0xe36724		# rust color
-draw_road_lane_2:
-	beq $t5, 10, end_road_lane_2
+	sw $t1, 768($t0)
+	sw $t1, 772($t0)
+	sw $t1, 780($t0)
 	
-	sw $t4, 38552($t0)
-	sw $t4, 39064($t0)
-	sw $t4, 39576($t0)
-	sw $t4, 40088($t0)
-	sw $t4, 40600($t0)
-	sw $t4, 41112($t0)
-	sw $t4, 41624($t0)
-	sw $t4, 42136($t0)
-	sw $t4, 42648($t0)
-	
-	sw $t4, 38652($t0)
-	sw $t4, 39164($t0)
-	sw $t4, 39676($t0)
-	sw $t4, 40188($t0)
-	sw $t4, 40700($t0)
-	sw $t4, 41212($t0)
-	sw $t4, 41724($t0)
-	sw $t4, 42236($t0)
-	sw $t4, 42748($t0)
-	
-	sw $t4, 38852($t0)
-	sw $t4, 39364($t0)
-	sw $t4, 39876($t0)
-	sw $t4, 40388($t0)
-	sw $t4, 40900($t0)
-	sw $t4, 41412($t0)
-	sw $t4, 41924($t0)
-	sw $t4, 42436($t0)
-	sw $t4, 42948($t0)
-	
-	addi $t5, $t5, 1
-	add $t0, $t0, 4
-	j draw_road_lane_2
-	
-end_road_lane_2:
-	li $t0, 0x10008000 
-	add $t5, $zero, $zero
-	
+	j end_draw_frog		# return to line after it was called
 
-li $t4, 0x3c71a6		# navy color
-draw_road_lane_3:
-	beq $t5, 40, end_road_lane_3
+
+# draw frog dead animation pixel-by-pixel	
+draw_frog_died:
+	li $t1, 0xfc03ca		# set $t1 to represent dead frog color
 	
-	sw $t4, 43008($t0)
-	sw $t4, 43520($t0)
-	sw $t4, 44032($t0)
-	sw $t4, 44544($t0)
-	sw $t4, 45056($t0)
-	sw $t4, 45568($t0)
-	sw $t4, 46080($t0)
-	sw $t4, 46592($t0)
-	sw $t4, 47104($t0)
+	sw $t1, 0($t0)
+	sw $t1, 4($t0)
+	sw $t1, 8($t0)
+	sw $t1, 12($t0)
+		
+	sw $t1, 256($t0)
+	sw $t1, 268($t0)
 	
-	sw $t4, 43308($t0)
-	sw $t4, 43820($t0)
-	sw $t4, 44332($t0)
-	sw $t4, 44844($t0)
-	sw $t4, 45356($t0)
-	sw $t4, 45868($t0)
-	sw $t4, 46380($t0)
-	sw $t4, 46892($t0)
-	sw $t4, 47404($t0)
+	sw $t1, 512($t0)
+	sw $t1, 524($t0)
 	
-	addi $t5, $t5, 1
-	add $t0, $t0, 4
-	j draw_road_lane_3
+	sw $t1, 768($t0)
+	sw $t1, 772($t0)
+	sw $t1, 776($t0)
+	sw $t1, 780($t0)
 	
-end_road_lane_3:
-	li $t0, 0x10008000 
-	add $t5, $zero, $zero
+	jr $ra			# return control to next line from where it was called 
 	
-li $t4, 0xcae324		# neon geen color
-draw_road_lane_4:
-	beq $t5, 30, end_road_lane_4
-	
-	sw $t4, 47668($t0)
-	sw $t4, 48180($t0)
-	sw $t4, 48692($t0)
-	sw $t4, 49204($t0)
-	sw $t4, 49716($t0)
-	sw $t4, 50228($t0)
-	sw $t4, 50740($t0)
-	sw $t4, 51252($t0)
-	sw $t4, 51764($t0)
-	
-	sw $t4, 47968($t0)
-	sw $t4, 48480($t0)
-	sw $t4, 48992($t0)
-	sw $t4, 49504($t0)
-	sw $t4, 50016($t0)
-	sw $t4, 50528($t0)
-	sw $t4, 51040($t0)
-	sw $t4, 51552($t0)
-	sw $t4, 52064($t0)
-	
-	
-	addi $t5, $t5, 1
-	add $t0, $t0, 4
-	j draw_road_lane_4
-	
-end_road_lane_4:
-	li $t0, 0x10008000 
-	add $t5, $zero, $zero
-	
-	
-redraw_all:
-	li $v0, 32
-	li $a0, 16		
+# function to identify any key presses
+key_down:
+	lw $t5, 0xffff0000	# load value to register
+	beq $t5, 1, input_key	# if $t5 == 1, jump to input_key
+	j repaint		# otherwise, repaint screen
+
+# function to identify which key was pressed
+input_key:
+	lw $t6, 0xffff0004		# load value to register
+	beq $t6, 0x61, jump_left		# if $t5 == 'a', jump to jump_left
+	beq $t6, 0x64, jump_right	# if $t5 == 'd', jump to jump_right
+	beq $t6, 0x73, jump_backward	# if $t5 == 's', jump to jump_backward
+	beq $t6, 0x77, jump_forward	# if $t5 == 'w', jump to jump_forward
+	beq $t6, 0x70, pause		# if $t5 == 'p', jump to pause
+
+# implement frog jumping left
+jump_left:
+	# add sound
+	li $v0, 31  	# MIDI out
+	li $a0, 40	# pitch
+	li $a1, 90	# duration
+	li $a2, 127	# instrument
+	li $a3, 100	# volume
 	syscall
-	j main
+	
+	# calculate new coordinates
+	lw $t7, x_frog
+	la $t8, x_frog
+	addi $t9, $t7, -4	# go 4 left = subtract 4 pixels from x
+	sw $t9, 0($t8)
+	
+	# repaint the screen
+	j repaint
+
+# implement frog jumping right
+jump_right:
+	# add sound
+	li $v0, 31  	# MIDI out
+	li $a0, 40	# pitch
+	li $a1, 90	# duration
+	li $a2, 127	# instrument
+	li $a3, 100	# volume
+	syscall
+	
+	# calculate new coordinates
+	lw $t7, x_frog
+	la $t8, x_frog
+	addi $t9, $t7, 4		# go 4 right = add 4 pixels to x
+	sw $t9, 0($t8)
+	
+	# repaint the screen
+	j repaint
+
+# implement frog jumping forward
+jump_forward:
+	# add sound
+	li $v0, 31  	# MIDI out
+	li $a0, 40	# pitch
+	li $a1, 90	# duration
+	li $a2, 124	# instrument
+	li $a3, 100	# volume
+	syscall
+	
+	# calculate new coordinates
+	lw $t7, y_frog
+	la $t8, y_frog
+	addi $t9, $t7, -4	# go 4 forward = subtract 4 pixels from y
+	sw $t9, 0($t8)
+	
+	# repaint the screen
+	j repaint
+
+# implement frog jumping backward	
+jump_backward:
+	# add sound
+	li $v0, 31  	# MIDI out
+	li $a0, 40	# pitch
+	li $a1, 90	# duration
+	li $a2, 124	# instrument
+	li $a3, 100	# volume
+	syscall
+	
+	# calculate new coordinates
+	lw $t7, y_frog
+	la $t8, y_frog
+	addi $t9, $t7, 4		# go 4 backward = add 4 pixels to y
+	sw $t9, 0($t8)
+	
+	# repaint the screen
+	j repaint
+	
+
+# function to stop drawing	
+end_background:
+	div $s2, $s1		# divide $s2 by $s1
+	mfhi $s0			# load the remainder
+	addi $s2, $s2, 1		
+	bne $s0, $zero, frog_collide	
+	addi $s4, $s4, -16
+	addi $s3, $s3, 16
+	bne $s4, -256, frog_collide
+	add $s4, $zero, $zero
+	add $s3, $zero, $zero 
+
+
+# function to identify collisions	
+frog_collide:
+	# calculate coordinates of frog
+	lw $t0, displayAddress
+	lw $t7, x_frog
+	lw $t8, y_frog
+	sll $t7, $t7, 2		# multiply x_frog by 4 = (2^2)
+	sll $t8, $t8, 8		# multiply y_frog by 256 = (2^8)
+	
+	la $t2, x_frog		# save coordinates to registers for future use
+	la $t9, y_frog
+	
+	add $t0, $t0, $t7	# add values to to $t0
+	add $t0, $t0, $t8
+
+	lw $t3, 0($t0)		# color at the top left pixel of frog
+	lw $t4, 12($t0)		# color at the top right pixel of frog
+	
+	# check against top left pixel
+	li $t1, 0xfff9ec 	# goal white	
+	beq $t3, $t1, frog_died
+	li $t1, 0xa3d8c6 	# water
+	beq $t3, $t1, frog_died
+	li $t1, 0xffd077 	# car corner	
+	beq $t3, $t1, frog_died
+	li $t1, 0x001219		# car tyre	
+	beq $t3, $t1, frog_died	
+	
+	# check against top right pixel
+	li $t1, 0xfff9ec 	# goal white	
+	beq $t4, $t1, frog_died
+	li $t1, 0xa3d8c6 	# water	
+	beq $t4, $t1, frog_died
+	li $t1, 0xffd077 	# car corner	
+	beq $t4, $t1, frog_died
+	li $t1, 0x001219 	# car tyre	
+	beq $t3, $t1, frog_died
+	
+	# check whether frog made a goal
+	lw $t3, -4($t0)
+	li $t1, 0x5e548e	 	# goal
+	beq $t3, $t1, frog_goal
+	
+	j key_down	
+
+# implement dying frog act
+frog_died:
+	# add sound
+	li $v0, 31  	# MIDI out
+	li $a0, 100	# pitch
+	li $a1, 100	# duration
+	li $a2, 124	# instrument
+	li $a3, 100	# volume
+	syscall
+	
+	# draw the frog death animation
+	jal draw_frog_died
+	
+	# decrease the frog lives by one
+	# store it into lives again
+	lw $t1, lives
+	la $t3, lives
+	addi $t1, $t1, -1
+	sw $t1, 0($t3)
+	
+	# calculate the initial coordinates of frog
+	lw $t7, x_frog_initial
+	lw $t8, y_frog_initial
+	sw $t7, 0($t2)
+	sw $t8, 0($t9)
+	
+	j key_down
+
+
+# implement frog making a goal action
+frog_goal:
+	# add sound
+	li $v0, 31  	# MIDI out
+	li $a0, 60	# pitch
+	li $a1, 90	# duration
+	li $a2, 16	# instrument
+	li $a3, 100	# volume
+	syscall
+	
+	# increase the goals_accomplished by one
+	lw $t1, goals_accomplished
+	la $t3, goals_accomplished
+	addi $t1, $t1, 1
+	sw $t1, 0($t3)
+	
+	# calculate the initial coordinates of frog
+	lw $t7, x_frog_initial
+	lw $t8, y_frog_initial
+	sw $t7, 0($t2)
+	sw $t8, 0($t9)
+	
+	# make the lanes go faster
+	addi $s1, $s1, -10
+	
+	j key_down
+
+
+# implement pause	
+pause:
+	lw $t5, 0xffff0000
+	beq $t5, 1, resume
+	j pause			# come back to this function
+
+
+# implement resume	
+resume:
+	lw $t6, 0xffff0004
+	beq $t6, 0x70, reset_t6	# if 'p' pressed, reset_t6
+	j pause
+	
+	reset_t6:
+	add $t6, $zero, $zero
+	j repaint
+
+
+# repaint the screen elements	
+repaint:
+	lw $t2, lives			# load value of lives into $t2
+	beq $t2, $zero, Exit		# if lives == 0, Exit
+	lw $t2, goals_accomplished	# load value of goals_accomplished into $t2
+	beq $t2, 3, Exit			# if goals_accomplished == 3, Exit
+	
+	# function for sleep
+	li $v0, 32
+	li $a0, 20		
+	syscall
+	
+	# draw background elements
+	j draw_background
+
+
+# called when lives == 0 or goals_accomplished == 3	
+Exit:
+	li $v0, 10			# terminate the program gracefully
+	syscall
